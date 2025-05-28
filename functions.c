@@ -72,7 +72,7 @@ void pretraziProizvod() { // Definicija funkcije koja pretražuje proizvod po na
 }
 
 // Brisanje proizvoda po ID-u: čita sve proizvode, preskače onaj s ID-om za brisanje i zapisuje ponovo
-void obrisiProizvod() {				
+void obrisiProizvod() {
 	int idZaBrisanje;// Deklaracija promenljive za čuvanje ID-a proizvoda koji se briše
 	printf("Unesite ID proizvoda za brisanje: "); // Ispisuje poruku korisniku da unese ID proizvoda za brisanje
 	scanf("%d", &idZaBrisanje); // Čita korisnikov unos ID-a proizvoda
@@ -82,12 +82,12 @@ void obrisiProizvod() {
 		return;					// Izlazi iz funkcije ako datoteka nije otvorena
 	}
 	FILE* temp = fopen("temp.txt", "w"); // Otvara privremenu datoteku "temp.txt" u režimu pisanja
-	if (!temp) { 
+	if (!temp) {
 		printf("Ne mogu kreirati privremenu datoteku.\n");					// Ispisuje poruku o grešci zbog neuspijelog kreiranja datoteke
 		fclose(fp);							// Zatvara originalnu datoteku
 		return;						// Izlazi iz funkcije ako privremena datoteka nije otvorena
 	}
-	Proizvod p; 
+	Proizvod p;
 	int found = 0; // Inicijalizuje promenljivu found na 0, koja će se koristiti za praćenje da li je proizvod pronađen
 	while (fscanf(fp, "%d,%49[^,],%29[^,],%f,%f\n", &p.id, p.naziv, p.kategorija, &p.kolicina, &p.cijena) == 5) { // Čita podatke iz datoteke i smešta ih u p (ovaj kod proizvoda kako bih cuvao sve u jednom)
 												//ID (int), naziv , kategoriju , količinu  i cenu  
@@ -105,3 +105,54 @@ void obrisiProizvod() {
 		return; // Izlazi iz funkcije
 	}
 	remove(DATOTEKA); // Briše originalnu datoteku
+}
+
+void UrediProizvod() {
+	int idZaUrediti;
+	printf("Unesite ID proizvoda za uredivanje: ");
+	scanf("%d", &idZaUrediti);
+
+	FILE* fp = fopen(DATOTEKA, "r");
+	if (!fp) {
+		printf("Datoteka ne postoji.\n");
+		return;
+	}
+
+	FILE* temp = fopen("temp.txt", "w");
+	if (!temp) {
+		printf("Ne mogu kreirati privremenu datoteku.\n");
+		fclose(fp);
+		return;
+	}
+
+	Proizvod p;
+	int found = 0;
+	while (fscanf(fp, "%d,%49[^,],%29[^,],%f,%f\n", &p.id, p.naziv, p.kategorija, &p.kolicina, &p.cijena) == 5) {
+		if (p.id == idZaUrediti) {
+			found = 1;
+			printf("Unesite nove podatke za proizvod:\n");
+			printf("Naziv: ");
+			scanf(" %49[^\n]", p.naziv);
+			printf("Kategorija: ");
+			scanf(" %29[^\n]", p.kategorija);
+			printf("Kolicina: ");
+			scanf("%f", &p.kolicina);
+			printf("Cena: ");
+			scanf("%f", &p.cijena);
+		}
+		fprintf(temp, "%d,%s,%s,%.2f,%.2f\n", p.id, p.naziv, p.kategorija, p.kolicina, p.cijena);
+	}
+
+	fclose(fp);
+	fclose(temp);
+
+	if (!found) {
+		printf("Proizvod s ID %d nije pronaden.\n", idZaUrediti);
+		remove("temp.txt");
+		return;
+	}
+
+	remove(DATOTEKA);
+	rename("temp.txt", DATOTEKA);
+	printf("Proizvod uspjesno azuriran.\n");
+}
