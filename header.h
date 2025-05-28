@@ -18,5 +18,6 @@ void dodajProizvod();
 void prikaziProizvode();
 void pretraziProizvod();
 void obrisiProizvod();
+void UrediProizvod(); 
 
 #endif
