@@ -105,7 +105,7 @@ void pretraziProizvod() {
         // Ako naziv proizvoda odgovara traženom nazivu
         if (strcmp(p.naziv, trazeni) == 0) {
             // Ispis pronađenog proizvoda
-            printf("Pronađen: ID: %d | %s | %s | %.2f kg | %.2f kn/kg\n", p.id, p.naziv, kategorijaUString(p.kategorija), p.kolicina, p.cijena);
+            printf("Pronaden: ID: %d | %s | %s | %.2f kg | %.2f kn/kg\n", p.id, p.naziv, kategorijaUString(p.kategorija), p.kolicina, p.cijena);
             found = 1; // Postavlja zastavicu na 1
             break; // Izlazi iz petlje nakon pronalaska
         }
@@ -209,7 +209,7 @@ void urediProizvod() {
     fclose(temp); // Zatvara privremenu datoteku
 
     if (!found) { // Ako proizvod nije pronađen
-        printf("Proizvod s ID %d nije pronaden.\n", idZaUrediti); // Ispisuje poruku
+        printf("Proizvod s ID %d nije pronden.\n", idZaUrediti); // Ispisuje poruku
         remove("temp.txt"); // Briše privremenu datoteku
         return; // Izlazi iz funkcije
     }
@@ -248,7 +248,20 @@ void ucitajProizvode() {
     fclose(fp); // Zatvara datoteku
 }
 
-// Sprema sve proizvode iz memorije u datoteku
+// Pomoćna rekurzivna funkcija za čuvanje proizvoda
+void sacuvajProizvodeRekurzivno(FILE* fp, size_t index) {
+    if (index >= skladiste.brojProizvoda) {
+        return; // Osnovni slučaj: ako je indeks veći ili jednak broju proizvoda, izlazimo
+    }
+
+    Proizvod p = skladiste.niz[index]; // Dohvaća proizvod iz niza
+    fprintf(fp, "%d,%s,%d,%.2f,%.2f\n", p.id, p.naziv, p.kategorija, p.kolicina, p.cijena); // Ispisuje u datoteku
+
+    // Rekurzivni poziv za sledeći proizvod
+    sacuvajProizvodeRekurzivno(fp, index + 1);
+}
+
+// Funkcija koja otvara datoteku i pokreće rekurzivno čuvanje proizvoda
 void sacuvajProizvode() {
     FILE* fp = fopen(DATOTEKA, "w"); // Otvara datoteku za pisanje (prepisuje postojeću)
     if (!fp) { // Ako nije moguće otvoriti datoteku
@@ -256,11 +269,8 @@ void sacuvajProizvode() {
         return; // Izlazi iz funkcije
     }
 
-    // Petlja koja piše svaki proizvod u datoteku
-    for (size_t i = 0; i < skladiste.brojProizvoda; ++i) {
-        Proizvod p = skladiste.niz[i]; // Dohvaća proizvod iz niza
-        fprintf(fp, "%d,%s,%d,%.2f,%.2f\n", p.id, p.naziv, p.kategorija, p.kolicina, p.cijena); // Ispisuje u datoteku
-    }
+    // Pokreće rekurzivnu funkciju za čuvanje proizvoda
+    sacuvajProizvodeRekurzivno(fp, 0);
 
     fclose(fp); // Zatvara datoteku
 }
