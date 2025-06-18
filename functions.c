@@ -1,291 +1,347 @@
-#define _CRT_SECURE_NO_WARNINGS // Onemogućuje upozorenja za korištenje nesigurnih funkcija poput scanf
-#include <stdio.h> // Učitava standardnu ulazno-izlaznu biblioteku
-#include <string.h> // Učitava funkcije za rad sa stringovima
-#include "header.h" // Učitava vlastiti zaglavni fajl sa definicijama struktura i prototipovima funkcija
+#define _CRT_SECURE_NO_WARNINGS
 
-#define DATOTEKA "skladiste.txt" // Definira naziv datoteke za pohranu podataka o proizvodima
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <errno.h>
+#include "header.h"
 
-Skladiste skladiste = { NULL, 0 }; // Globalna varijabla koja drži niz proizvoda i njihov broj; inicijalno NULL i 0
+#define DATOTEKA "skladiste.txt"
 
-// Pomoćna funkcija koja prevodi enum Kategorija u string, zbog krive inizijalizacije izbacivalo mi je exception thrown
+Skladiste skladiste = { NULL, 0 };
+
+// Funkcija za ciscenje ekrana (cross-platform)
+void clearScreen() {
+#ifdef _WIN32
+    system("cls");
+#else
+    system("clear");
+#endif
+}
+
 const char* kategorijaUString(Kategorija k) {
     switch (k) {
-    case VOCE: return "voce"; // Ako je kategorija VOCE, vraća string "voce"
-    case POVRCE: return "povrce"; // Ako je kategorija POVRCE, vraća string "povrce"
-    default: return "nepoznato"; // U ostalim slučajevima vraća "nepoznato"
+    case VOCE:
+        return "voce";
+    case POVRCE:
+        return "povrce";
+    default:
+        return "nepoznato";
     }
 }
 
-// Pomoćna funkcija koja prevodi string u enum Kategorija, zbog krive inizijalizacije izbacivalo mi je exception thrown
 Kategorija stringUKategoriju(const char* s) {
     if (strcmp(s, "voce") == 0 || strcmp(s, "Voce") == 0)
-        return VOCE; // Ako je string "voce" (ili s velikim V), vraća VOCE
+        return VOCE;
     else if (strcmp(s, "povrce") == 0 || strcmp(s, "Povrce") == 0)
-        return POVRCE; // Ako je string "povrce" (ili s velikim P), vraća POVRCE
+        return POVRCE;
     else
-        return VOCE; // Zadana kategorija u slučaju neprepoznatog stringa je VOCE
+        return VOCE;
 }
 
-// Funkcija za dodavanje novog proizvoda u skladište
+// Provjera postoji li vec uneseni ID
+int postojiId(int id) {
+    for (size_t i = 0; i < skladiste.brojProizvoda; i++) {
+        if (skladiste.niz[i].id == id) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
 void dodajProizvod() {
-    if (skladiste.niz == NULL) { // Provjerava je li memorija za proizvode alocirana
-        printf("Greska: Memorija za proizvode nije alocirana!\n"); // Ispisuje poruku o grešci
-        return; // Izlazi iz funkcije
+    if (skladiste.niz == NULL) {
+        printf("Greska: Memorija za proizvode nije alocirana!\n");
+        printf("Pritisni Enter za nastavak...");
+        getchar();
+        getchar();
+        return;
     }
-
-    if (skladiste.brojProizvoda >= MAX_PROIZVODI) { // Provjerava je li dosegnut maksimalni broj proizvoda
-        printf("Dosegnut maksimalan broj proizvoda.\n"); // Ispisuje poruku upozorenja
-        return; // Izlazi iz funkcije
+    if (skladiste.brojProizvoda >= MAX_PROIZVODI) {
+        printf("Dosegnut maksimalan broj proizvoda.\n");
+        printf("Pritisni Enter za nastavak...");
+        getchar();
+        getchar();
+        return;
     }
+    Proizvod novi;
+    int noviId;
+    do {
+        printf("Unesite ID: ");
+        scanf("%d", &noviId);
+        if (postojiId(noviId)) {
+            printf("Proizvod s tim ID-em vec postoji! Unesite drugi ID.\n");
+        }
+    } while (postojiId(noviId));
+    novi.id = noviId;
+    printf("Unesite naziv: ");
+    scanf(" %49[^\n]", novi.naziv);
+    char katStr[20];
+    printf("Unesite kategoriju (voce/povrce): ");
+    scanf(" %19[^\n]", katStr);
+    novi.kategorija = stringUKategoriju(katStr);
+    printf("Unesite kolicinu (kg): ");
+    scanf("%f", &novi.kolicina);
+    printf("Unesite cijenu (po kg): ");
+    scanf("%f", &novi.cijena);
 
-    Proizvod novi; // Deklarira novu varijablu za proizvod
-    printf("Unesite ID: "); // Traži od korisnika unos ID-a proizvoda
-    scanf("%d", &novi.id); // Čita uneseni ID sa standardnog ulaza
-
-    printf("Unesite naziv: "); // Traži unos naziva proizvoda
-    scanf(" %49[^\n]", novi.naziv); // Čita naziv (do 49 znakova, uključujući praznine)
-
-    char katStr[20]; // Deklarira string za unos kategorije
-    printf("Unesite kategoriju (voce/povrce): "); // Traži unos kategorije proizvoda
-    scanf(" %19[^\n]", katStr); // Čita unesenu kategoriju
-    if (strcmp(katStr, "voce") == 0) // Ako je uneseno "voce"
-        novi.kategorija = VOCE; // Postavlja kategoriju na VOCE
-    else
-        novi.kategorija = POVRCE; // Inače postavlja na POVRCE
-
-    printf("Unesite kolicinu (kg): "); // Traži unos količine u kg
-    scanf("%f", &novi.kolicina); // Čita količinu
-
-    printf("Unesite cijenu (po kg): "); // Traži unos cijene po kg
-    scanf("%f", &novi.cijena); // Čita cijenu
-
-    // Dodaje novog proizvoda u niz u memoriji
-    skladiste.niz[skladiste.brojProizvoda++] = novi; // Spremi proizvod i povećaj broj proizvoda
-
-    // Sprema sve proizvode iz memorije u datoteku
+    skladiste.niz[skladiste.brojProizvoda++] = novi;
     sacuvajProizvode();
-
-    printf("Proizvod dodan i spremljen.\n"); // Potvrda korisniku
+    printf("Proizvod dodan i spremljen.\n");
+    printf("Pritisni Enter za nastavak...");
+    getchar();
+    getchar();
 }
 
-// Funkcija za prikaz svih proizvoda iz datoteke
 void prikaziProizvode() {
-    FILE* fp = fopen(DATOTEKA, "r"); // Otvara datoteku za čitanje
-    if (!fp) { // Ako datoteka ne postoji ili nije moguće otvoriti
-        printf("Datoteka ne postoji ili je prazna.\n"); // Ispisuje poruku
-        return; // Izlazi iz funkcije
-    }
+    static int brojPoziva = 0;
+    brojPoziva++;
+    printf("Funkcija prikaziProizvode pozvana %d puta\n", brojPoziva);
 
-    Proizvod p; // Deklarira varijablu za učitavanje proizvoda
-    printf("\n--- Lista proizvoda ---\n"); // Ispis naslova liste
-    // Čita red po red iz datoteke dok postoji zapis i ispisuje podatke o proizvodu
+    FILE* fp = fopen(DATOTEKA, "r");
+    if (!fp) {
+        printf("Datoteka ne postoji ili je prazna.\n");
+        printf("Pritisni Enter za nastavak...");
+        getchar();
+        getchar();
+        return;
+    }
+    Proizvod p;
+    printf("\n--- Lista proizvoda ---\n");
     while (fscanf(fp, "%d,%49[^,],%d,%f,%f\n", &p.id, p.naziv, (int*)&p.kategorija, &p.kolicina, &p.cijena) == 5) {
-        // Ispis proizvoda formatiran
         printf("ID: %d | %s | %s | %.2f kg | %.2f kn/kg\n", p.id, p.naziv, kategorijaUString(p.kategorija), p.kolicina, p.cijena);
     }
-    fclose(fp); // Zatvara datoteku
+    fclose(fp);
+    printf("Pritisni Enter za nastavak...");
+    getchar();
+    getchar();
 }
 
-// Funkcija za pretraživanje proizvoda prema nazivu
+// Podizbornik za pretragu
 void pretraziProizvod() {
-    char trazeni[MAX_NAZIV]; // Mjesto za unos traženog naziva
-    printf("Unesite naziv za pretragu: "); // Ispis upita za unos naziva
-    scanf(" %49[^\n]", trazeni); // Čita naziv za pretragu
+    int podizbor;
+    do {
+        clearScreen();
+        printf("\n--- Podizbornik pretrage ---\n");
+        printf("1. Pretraga po nazivu\n");
+        printf("2. Pretraga po ID-u (bsearch)\n");
+        printf("0. Povratak na glavni izbornik\n");
+        printf("Odabir: ");
+        scanf("%d", &podizbor);
 
-    FILE* fp = fopen(DATOTEKA, "r"); // Otvara datoteku za čitanje
-    if (!fp) { // Provjera uspješnog otvaranja
-        printf("Datoteka ne postoji.\n"); // Poruka o nepostojanju datoteke
-        return; // Izlazak iz funkcije
+        switch (podizbor) {
+        case 1:
+            pretraziProizvodPoNazivu();
+            break;
+        case 2:
+            pretraziProizvodBsearch();
+            break;
+        case 0:
+            printf("Povratak na glavni izbornik.\n");
+            break;
+        default:
+            printf("Nepoznata opcija.\n");
+        }
+    } while (podizbor != 0);
+}
+
+void pretraziProizvodPoNazivu() {
+    char trazeni[MAX_NAZIV];
+    printf("Unesite naziv za pretragu: ");
+    scanf(" %49[^\n]", trazeni);
+    FILE* fp = fopen(DATOTEKA, "r");
+    if (!fp) {
+        printf("Datoteka ne postoji.\n");
+        printf("Pritisni Enter za nastavak...");
+        getchar();
+        getchar();
+        return;
     }
-
-    Proizvod p; // Deklaracija varijable za proizvod
-    int found = 0; // Zastavica za pronalazak proizvoda
-    // Čita po jedan zapis iz datoteke dok postoji
+    Proizvod p;
+    int found = 0;
     while (fscanf(fp, "%d,%49[^,],%d,%f,%f\n", &p.id, p.naziv, (int*)&p.kategorija, &p.kolicina, &p.cijena) == 5) {
-        // Ako naziv proizvoda odgovara traženom nazivu
         if (strcmp(p.naziv, trazeni) == 0) {
-            // Ispis pronađenog proizvoda
             printf("Pronaden: ID: %d | %s | %s | %.2f kg | %.2f kn/kg\n", p.id, p.naziv, kategorijaUString(p.kategorija), p.kolicina, p.cijena);
-            found = 1; // Postavlja zastavicu na 1
-            break; // Izlazi iz petlje nakon pronalaska
+            found = 1;
         }
     }
-    if (!found) printf("Proizvod nije pronaden.\n"); // Ako nema pronalaska, ispisuje poruku
-    fclose(fp); // Zatvara datoteku
+    if (!found) printf("Proizvod nije pronaden.\n");
+    fclose(fp);
+    printf("Pritisni Enter za nastavak...");
+    getchar();
+    getchar();
 }
 
-// Funkcija za brisanje proizvoda prema ID-u
+// bsearch primjer (koncept 24)
+int usporediProizvodId(const void* a, const void* b) {
+    return ((Proizvod*)a)->id - ((Proizvod*)b)->id;
+}
+
+void pretraziProizvodBsearch() {
+    if (skladiste.brojProizvoda == 0) {
+        printf("Nema proizvoda.\n");
+        printf("Pritisni Enter za nastavak...");
+        getchar();
+        getchar();
+        return;
+    }
+    int trazeniId;
+    printf("Unesite ID za pretragu: ");
+    scanf("%d", &trazeniId);
+    qsort(skladiste.niz, skladiste.brojProizvoda, sizeof(Proizvod), usporediProizvodId);
+    Proizvod kljuc;
+    kljuc.id = trazeniId;
+    Proizvod* pronadjen = bsearch(&kljuc, skladiste.niz, skladiste.brojProizvoda, sizeof(Proizvod), usporediProizvodId);
+    if (pronadjen) {
+        printf("Pronaden: ID: %d | %s | %s | %.2f kg | %.2f kn/kg\n", pronadjen->id, pronadjen->naziv, kategorijaUString(pronadjen->kategorija), pronadjen->kolicina, pronadjen->cijena);
+    }
+    else {
+        printf("Proizvod nije pronaden.\n");
+    }
+    printf("Pritisni Enter za nastavak...");
+    getchar();
+    getchar();
+}
+
 void obrisiProizvod() {
-    int idZaBrisanje; // Varijabla za ID proizvoda koji treba obrisati
-    printf("Unesite ID proizvoda za brisanje: "); // Traži unos ID-a za brisanje
-    scanf("%d", &idZaBrisanje); // Čita uneseni ID
+    int idZaBrisanje;
+    printf("Unesite ID proizvoda za brisanje: ");
+    scanf("%d", &idZaBrisanje);
 
-    FILE* fp = fopen(DATOTEKA, "r"); // Otvara originalnu datoteku za čitanje
-    if (!fp) { // Provjerava je li otvorena uspješno
-        printf("Datoteka ne postoji.\n"); // Poruka o grešci
-        return; // Izlazi iz funkcije
-    }
-
-    FILE* temp = fopen("temp.txt", "w"); // Otvara privremenu datoteku za pisanje
-    if (!temp) { // Provjera uspješnosti otvaranja
-        printf("Ne mogu kreirati privremenu datoteku.\n"); // Poruka o grešci
-        fclose(fp); // Zatvara originalnu datoteku
-        return; // Izlazi iz funkcije
-    }
-
-    Proizvod p; // Varijabla za učitavanje proizvoda
-    int found = 0; // Zastavica ako je proizvod pronađen
-    // Petlja za čitanje i prepisivanje svih proizvoda osim onog za brisanje
-    while (fscanf(fp, "%d,%49[^,],%d,%f,%f\n", &p.id, p.naziv, (int*)&p.kategorija, &p.kolicina, &p.cijena) == 5) {
-        if (p.id == idZaBrisanje) { // Ako je ovo proizvod za brisanje
-            found = 1; // Postavlja zastavicu da je pronađeno
-            continue; // Preskače zapis i ne upisuje u temp datoteku
+    // Brisanje iz memorije
+    int found = 0;
+    for (size_t i = 0; i < skladiste.brojProizvoda; i++) {
+        if (skladiste.niz[i].id == idZaBrisanje) {
+            for (size_t j = i; j < skladiste.brojProizvoda - 1; j++) {
+                skladiste.niz[j] = skladiste.niz[j + 1];
+            }
+            skladiste.brojProizvoda--;
+            found = 1;
+            break;
         }
-        // Inače prepisuje zapis u privremenu datoteku
-        fprintf(temp, "%d,%s,%d,%.2f,%.2f\n", p.id, p.naziv, p.kategorija, p.kolicina, p.cijena);
     }
-
-    fclose(fp); // Zatvara originalnu datoteku
-    fclose(temp); // Zatvara privremenu datoteku
-
-    if (!found) { // Ako proizvod nije pronađen
-        printf("Proizvod s ID %d nije pronaden.\n", idZaBrisanje); // Ispisuje poruku
-        remove("temp.txt"); // Briše privremenu datoteku jer nema promjene
-        return; // Izlazi iz funkcije
+    if (!found) {
+        printf("Proizvod s ID %d nije pronaden.\n", idZaBrisanje);
+        printf("Pritisni Enter za nastavak...");
+        getchar();
+        getchar();
+        return;
     }
-
-    remove(DATOTEKA); // Briše originalnu datoteku
-    rename("temp.txt", DATOTEKA); // Preimenuje privremenu u originalnu
-    printf("Proizvod obrisan.\n"); // Potvrda brisanja
+    sacuvajProizvode();
+    printf("Proizvod obrisan.\n");
+    printf("Pritisni Enter za nastavak...");
+    getchar();
+    getchar();
 }
 
-// Funkcija za uređivanje proizvoda po ID-u
 void urediProizvod() {
-    int idZaUrediti; // ID proizvoda za uređivanje
-    printf("Unesite ID proizvoda za uredivanje: "); // Zahtjeva unos ID-a
-    scanf("%d", &idZaUrediti); // Čita ID
-
-    FILE* fp = fopen(DATOTEKA, "r"); // Otvara originalnu datoteku za čitanje
-    if (!fp) { // Provjerava uspješnost otvaranja
-        printf("Datoteka ne postoji.\n"); // Poruka o grešci
-        return; // Izlazi iz funkcije
-    }
-
-    FILE* temp = fopen("temp.txt", "w"); // Otvara privremenu datoteku za pisanje
-    if (!temp) { // Provjerava uspješnost otvaranja
-        printf("Ne mogu kreirati privremenu datoteku.\n"); // Poruka o grešci
-        fclose(fp); // Zatvara originalnu datoteku
-        return; // Izlazi iz funkcije
-    }
-
-    Proizvod p; // Varijabla za proizvod
-    int found = 0; // Zastavica ako je proizvod pronađen
-    // Petlja za čitanje proizvoda i uređivanje onog sa traženim ID
-    while (fscanf(fp, "%d,%49[^,],%d,%f,%f\n", &p.id, p.naziv, (int*)&p.kategorija, &p.kolicina, &p.cijena) == 5) {
-        if (p.id == idZaUrediti) { // Ako je proizvod za uređivanje
-            found = 1; // Postavlja zastavicu
-            printf("Unesite nove podatke za proizvod:\n"); // Traži unos novih podataka
-
-            char kategorijaStr[30]; // Privremeni string za unos kategorije
-
-            printf("Naziv: "); // Zahtjeva novi naziv
-            scanf(" %49[^\n]", p.naziv); // Čita novi naziv
-
-            printf("Kategorija (voce/povrce): "); // Zahtjeva novu kategoriju
-            scanf(" %29[^\n]", kategorijaStr); // Čita kategoriju
-            p.kategorija = stringUKategoriju(kategorijaStr); // Pretvara string u enum
-
-            printf("Kolicina: "); // Zahtjeva novu količinu
-            scanf("%f", &p.kolicina); // Čita količinu
-
-            printf("Cena: "); // Zahtjeva novu cijenu
-            scanf("%f", &p.cijena); // Čita cijenu
+    int idZaUrediti;
+    printf("Unesite ID proizvoda za uredivanje: ");
+    scanf("%d", &idZaUrediti);
+    int found = 0;
+    for (size_t i = 0; i < skladiste.brojProizvoda; i++) {
+        if (skladiste.niz[i].id == idZaUrediti) {
+            char kategorijaStr[30];
+            printf("Unesite nove podatke za proizvod:\n");
+            printf("Naziv: ");
+            scanf(" %49[^\n]", skladiste.niz[i].naziv);
+            printf("Kategorija (voce/povrce): ");
+            scanf(" %29[^\n]", kategorijaStr);
+            skladiste.niz[i].kategorija = stringUKategoriju(kategorijaStr);
+            printf("Kolicina: ");
+            scanf("%f", &skladiste.niz[i].kolicina);
+            printf("Cijena: ");
+            scanf("%f", &skladiste.niz[i].cijena);
+            found = 1;
+            break;
         }
-        // Upisuje proizvod (novi ili nepromijenjeni) u privremenu datoteku
-        fprintf(temp, "%d,%s,%d,%.2f,%.2f\n", p.id, p.naziv, p.kategorija, p.kolicina, p.cijena);
     }
-
-    fclose(fp); // Zatvara originalnu datoteku
-    fclose(temp); // Zatvara privremenu datoteku
-
-    if (!found) { // Ako proizvod nije pronađen
-        printf("Proizvod s ID %d nije pronden.\n", idZaUrediti); // Ispisuje poruku
-        remove("temp.txt"); // Briše privremenu datoteku
-        return; // Izlazi iz funkcije
+    if (!found) {
+        printf("Proizvod s ID %d nije pronaden.\n", idZaUrediti);
+        printf("Pritisni Enter za nastavak...");
+        getchar();
+        getchar();
+        return;
     }
-
-    remove(DATOTEKA); // Briše originalnu datoteku
-    rename("temp.txt", DATOTEKA); // Preimenuje privremenu u originalnu
-    printf("Proizvod uspjesno azuriran.\n"); // Potvrda uređivanja
+    sacuvajProizvode();
+    printf("Proizvod uspjesno azuriran.\n");
+    printf("Pritisni Enter za nastavak...");
+    getchar();
+    getchar();
 }
 
-// Učitava proizvode iz datoteke u memoriju
 void ucitajProizvode() {
-    // Alocira memoriju za maksimalan broj proizvoda
     skladiste.niz = (Proizvod*)malloc(sizeof(Proizvod) * MAX_PROIZVODI);
-    skladiste.brojProizvoda = 0; // Resetira brojač
-
-    FILE* fp = fopen(DATOTEKA, "r"); // Otvara datoteku za čitanje
-    if (!fp) { // Ako datoteka ne postoji
-        printf("Datoteka ne postoji, nastavljamo s praznim skladistem.\n"); // Obavještava korisnika
-        return; // Izlazi jer nema podataka za učitati
+    skladiste.brojProizvoda = 0;
+    FILE* fp = fopen(DATOTEKA, "r");
+    if (!fp) {
+        printf("Datoteka ne postoji, nastavljamo s praznim skladistem.\n");
+        return;
     }
-
-    // Čita datoteku red po red dok ne dosegne kraj ili maksimalan broj proizvoda
     while (skladiste.brojProizvoda < MAX_PROIZVODI) {
-        Proizvod p; // Privremena varijabla za proizvod
-        int kategorijaInt; // Integer za privremeni učitak kategorije
-        int rezultat = fscanf(fp, "%d,%49[^,],%d,%f,%f\n",
-            &p.id, p.naziv, &kategorijaInt, &p.kolicina, &p.cijena); // Čita jedan zapis iz datoteke
-        if (rezultat != 5) // Ako nije uspješno pročitao svih 5 polja
-            break; // Izlazi iz petlje
-
-        p.kategorija = (Kategorija)kategorijaInt; // Pretvara int u enum
-        // Sprema proizvod u niz i povećava broj proizvoda
+        Proizvod p;
+        int kategorijaInt;
+        int rezultat = fscanf(fp, "%d,%49[^,],%d,%f,%f\n", &p.id, p.naziv, &kategorijaInt, &p.kolicina, &p.cijena);
+        if (rezultat != 5) {
+            break;
+        }
+        p.kategorija = (Kategorija)kategorijaInt;
         skladiste.niz[skladiste.brojProizvoda++] = p;
     }
-
-    fclose(fp); // Zatvara datoteku
+    fclose(fp);
 }
 
-// Pomoćna rekurzivna funkcija za čuvanje proizvoda
+// Rekurzivna funkcija za spremanje proizvoda (koncept 25)
 void sacuvajProizvodeRekurzivno(FILE* fp, size_t index) {
     if (index >= skladiste.brojProizvoda) {
-        return; // Osnovni slučaj: ako je indeks veći ili jednak broju proizvoda, izlazimo
+        return;
     }
-
-    Proizvod p = skladiste.niz[index]; // Dohvaća proizvod iz niza
-    fprintf(fp, "%d,%s,%d,%.2f,%.2f\n", p.id, p.naziv, p.kategorija, p.kolicina, p.cijena); // Ispisuje u datoteku
-
-    // Rekurzivni poziv za sledeći proizvod
+    Proizvod p = skladiste.niz[index];
+    fprintf(fp, "%d,%s,%d,%.2f,%.2f\n", p.id, p.naziv, p.kategorija, p.kolicina, p.cijena);
     sacuvajProizvodeRekurzivno(fp, index + 1);
 }
 
-// Funkcija koja otvara datoteku i pokreće rekurzivno čuvanje proizvoda
 void sacuvajProizvode() {
-    FILE* fp = fopen(DATOTEKA, "w"); // Otvara datoteku za pisanje (prepisuje postojeću)
-    if (!fp) { // Ako nije moguće otvoriti datoteku
-        perror("Greska pri upisu u datoteku"); // Ispisuje sistemsku poruku o grešci
-        return; // Izlazi iz funkcije
+    FILE* fp = fopen(DATOTEKA, "w");
+    if (!fp) {
+        perror("Greska pri upisu u datoteku");
+        return;
     }
-
-    // Pokreće rekurzivnu funkciju za čuvanje proizvoda
     sacuvajProizvodeRekurzivno(fp, 0);
-
-    fclose(fp); // Zatvara datoteku
+    fclose(fp);
 }
 
-// Funkcija za usporedbu proizvoda po nazivu za sort funkciju
 int usporediProizvode(const void* a, const void* b) {
-    const Proizvod* pa = (const Proizvod*)a; // Pretvara na tip Proizvod
-    const Proizvod* pb = (const Proizvod*)b; // Pretvara na tip Proizvod
-    return strcmp(pa->naziv, pb->naziv); // Vraća rezultat usporedbe naziva ASCII poretkom
+    const Proizvod* pa = (const Proizvod*)a;
+    const Proizvod* pb = (const Proizvod*)b;
+    return strcmp(pa->naziv, pb->naziv);
 }
 
-// Sortira proizvode po nazivu abecednim redom
 void sortirajProizvode() {
-    if (skladiste.brojProizvoda > 1) { // Ako ima barem dva proizvoda
-        qsort(skladiste.niz, skladiste.brojProizvoda, sizeof(Proizvod), usporediProizvode); // Sortira niz proizvoda koristeći qsort i funkciju usporediProizvode
-        printf("Proizvodi sortirani po nazivu.\n"); // Obavještava korisnika o izvršenoj sorti
+    if (skladiste.brojProizvoda > 1) {
+        qsort(skladiste.niz, skladiste.brojProizvoda, sizeof(Proizvod), usporediProizvode);
+        printf("Proizvodi sortirani po nazivu.\n");
     }
+    printf("Pritisni Enter za nastavak...");
+    getchar();
+    getchar();
+}
+
+// Funkcija s fseek/ftell (koncept 20)
+void prikaziVelicinuDatoteke() {
+    FILE* fp = fopen(DATOTEKA, "r");
+    if (!fp) {
+        printf("Datoteka ne postoji.\n");
+        printf("Pritisni Enter za nastavak...");
+        getchar();
+        getchar();
+        return;
+    }
+    fseek(fp, 0, SEEK_END);
+    long velicina = ftell(fp);
+    fclose(fp);
+    printf("Velicina datoteke: %ld bajtova\n", velicina);
+    printf("Pritisni Enter za nastavak...");
+    getchar();
+    getchar();
 }
