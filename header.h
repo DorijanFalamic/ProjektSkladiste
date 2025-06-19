@@ -12,11 +12,11 @@
 #define MAX_PROIZVODI 100
 
 // Makro funkcija (koncept 9)
-#define MAKS(a, b) ((a) > (b) ? (a) : (b))
+#define MAKS(a, b) ((a) > (b) ? (a) : (b)) //definiramo makro kako bi nam sluzio za pronalazenje maks vrijednosti nekog broja
 
 // Inline funkcija (koncept 9)
-static inline float minFloat(float a, float b) { return a < b ? a : b; }
-
+static inline float minFloat(float a, float b) { return a < b ? a : b; } // inline zato sto saljemo direktno u fuknciju umjedsto na standardni poziv
+                                                   //ako je a manje od b, funkcija vraća a. a u suprotno, vraća b.
 // Enum za kategoriju proizvoda
 typedef enum {
     VOCE,
@@ -24,7 +24,7 @@ typedef enum {
 } Kategorija;
 
 // Enum za izbornik (koncept 11)
-typedef enum {
+typedef enum {// enum znaci da se radi o numeraciji i sve unutar se odnosi na ovo izvan[IzbornikOpcije]
     DODAJ = 1,
     PRIKAZI,
     PRETRAZI,
@@ -48,7 +48,7 @@ typedef struct {
     size_t brojProizvoda;
 } Skladiste;
 
-extern Skladiste skladiste;
+extern Skladiste skladiste;  // Mozemo rec da varijabla extern govori programu da varijabla postoji negdje drugdje 
 
 // Deklaracije funkcija
 void dodajProizvod();
