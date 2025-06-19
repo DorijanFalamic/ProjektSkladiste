@@ -54,10 +54,10 @@ int main() {
             getchar();
             getchar();
         }
-    } while (izbor != IZLAZ);
-    sacuvajProizvode();
-    free(skladiste.niz);
-    skladiste.niz = NULL;
-    skladiste.brojProizvoda = 0;
+    } while (izbor != IZLAZ); // izvrsava se sve dok je razlicito od IZLAZ , zato sto kad popriki tu vrijednoost onda sacuva proizvode pomocu funkcije,oslobada memoriju
+    sacuvajProizvode();//to je funkcija za sacuvanje
+    free(skladiste.niz);//za oslobadanje ako alocirana memorija nije osoblodjena i nije potrebna vise
+    skladiste.niz = NULL;  // postavlja vrijednost null da ne bi doslo do problema gdje pokazivac i dalje pokazuje na prethodno oslobodenu memoriju
+    skladiste.brojProizvoda = 0; //stavlja brojPro. na 0, koristno za ponovno pokretanje
     return 0;
 }
